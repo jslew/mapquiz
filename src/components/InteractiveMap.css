@@ -49,6 +49,11 @@
   stroke: #c0392b;
 }
 
+.marker-circle.answer {
+  fill: #f1c40f;
+  stroke: #f39c12;
+}
+
 .marker-label {
   font-weight: bold;
   pointer-events: none;
@@ -72,8 +77,13 @@
   fill: #a93226;
 }
 
+.marker-label.answer {
+  fill: #d68910;
+}
+
 .marker-label.correct,
-.marker-label.incorrect {
+.marker-label.incorrect,
+.marker-label.answer {
   display: block;
 }
 
@@ -149,6 +159,11 @@
 .legend-marker.incorrect {
   background: #e74c3c;
   border-color: #c0392b;
+}
+
+.legend-marker.answer {
+  background: #f1c40f;
+  border-color: #f39c12;
 }
 
 /* Responsive Design */

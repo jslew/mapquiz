@@ -104,6 +104,12 @@
   cursor: default;
 }
 
+.word-button.selected {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(243, 156, 18, 0.5);
+}
+
 
 .word-bank-stats {
   display: grid;

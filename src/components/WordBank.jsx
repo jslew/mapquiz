@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import './WordBank.css';
 
-const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) => {
+const WordBank = ({ locations, answeredLocations, onLocationSelect, selectedLocationName }) => {
   const [shuffledLocations, setShuffledLocations] = useState(
     locations && locations.length > 0 ? [...locations].sort(() => Math.random() - 0.5) : []
   );
@@ -14,11 +14,11 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
     }
   }, [locations]);
 
-  const handleAnswerClick = (locationName) => {
-    if (!selectedLocation || answeredLocations.has(selectedLocation.name)) {
+  const handleLocationClick = (locationName) => {
+    if (answeredLocations.has(locationName)) {
       return;
     }
-    onAnswer(locationName);
+    onLocationSelect(locationName);
   };
 
   const shuffleAnswers = () => {
@@ -42,14 +42,14 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
       <div className="word-bank-content">
         {shuffledLocations.map((location) => {
           const isAnswered = answeredLocations.has(location.name);
-          const isDisabled = !selectedLocation || isAnswered;
+          const isSelected = selectedLocationName === location.name;
           
           return (
             <button
               key={location.name}
-              className={`word-button${isAnswered ? ' answered' : ''}`}
-              onClick={() => handleAnswerClick(location.name)}
-              disabled={isDisabled}
+              className={`word-button${isAnswered ? ' answered' : ''}${isSelected ? ' selected' : ''}`}
+              onClick={() => handleLocationClick(location.name)}
+              disabled={isAnswered}
             >
               {location.name}
             </button>
@@ -72,15 +72,15 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
         </div>
       </div>
       
-      {selectedLocation && !answeredLocations.has(selectedLocation.name) && (
+      {selectedLocationName && !answeredLocations.has(selectedLocationName) && (
         <div className="selection-instruction">
-          <p>💡 Choose the matching name from the word bank.</p>
+          <p>📍 Now click on the map to place {selectedLocationName}</p>
         </div>
       )}
       
-      {!selectedLocation && (
+      {!selectedLocationName && (
         <div className="selection-instruction">
-          <p>🎯 Click on a location on the map to start answering</p>
+          <p>🎯 Select a location from above to start</p>
         </div>
       )}
     </div>

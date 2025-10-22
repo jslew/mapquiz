@@ -5,49 +5,75 @@ import ScoreDisplay from './ScoreDisplay';
 import './MapQuiz.css';
 
 const MapQuiz = ({ mode, onBackToMenu, locations }) => {
-  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [selectedLocationName, setSelectedLocationName] = useState(null);
   const [answeredLocations, setAnsweredLocations] = useState(new Set());
   const [correctAnswers, setCorrectAnswers] = useState(new Set());
   const [incorrectAnswers, setIncorrectAnswers] = useState(new Set());
-  const [showHint, setShowHint] = useState(false);
+  const [clickedMarkers, setClickedMarkers] = useState([]); // {lon, lat, type: 'correct'|'incorrect'|'answer'}
   const [quizComplete, setQuizComplete] = useState(false);
   const [score, setScore] = useState(0);
   const [attempts, setAttempts] = useState(0);
 
   const resetQuiz = useCallback(() => {
-    setSelectedLocation(null);
+    setSelectedLocationName(null);
     setAnsweredLocations(new Set());
     setCorrectAnswers(new Set());
     setIncorrectAnswers(new Set());
-    setShowHint(false);
+    setClickedMarkers([]);
     setQuizComplete(false);
     setScore(0);
     setAttempts(prev => prev + 1);
   }, []);
 
-  const handleLocationClick = (location) => {
-    if (answeredLocations.has(location.name)) return;
-    setSelectedLocation(location);
-    setShowHint(false);
+  // User selects a location name from the word bank
+  const handleLocationSelect = (locationName) => {
+    if (answeredLocations.has(locationName)) return;
+    setSelectedLocationName(locationName);
   };
 
-  const handleAnswer = (answer) => {
+  // Calculate distance between two points in nautical miles
+  const calculateDistance = (lon1, lat1, lon2, lat2) => {
+    const R = 3440.065; // Earth's radius in nautical miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  };
+
+  // User clicks on the map
+  const handleMapClick = (lon, lat, countryName) => {
+    if (!selectedLocationName) return;
+    
+    const selectedLocation = locations.find(loc => loc.name === selectedLocationName);
     if (!selectedLocation) return;
 
-    const isCorrect = answer === selectedLocation.name;
+    let isCorrect = false;
     
-    const newAnsweredLocations = new Set([...answeredLocations, selectedLocation.name]);
+    if (mode === 'countries') {
+      // Check if clicked within the correct country
+      isCorrect = countryName === selectedLocationName;
+    } else {
+      // For cities, check if within 200 nm
+      const distance = calculateDistance(lon, lat, selectedLocation.x, selectedLocation.y);
+      isCorrect = distance <= 200;
+    }
+
+    const newAnsweredLocations = new Set([...answeredLocations, selectedLocationName]);
     
     if (isCorrect) {
-      setCorrectAnswers(prev => new Set([...prev, selectedLocation.name]));
+      setCorrectAnswers(prev => new Set([...prev, selectedLocationName]));
       setScore(prev => prev + 1);
+      setClickedMarkers(prev => [...prev, { lon, lat, type: 'correct', name: selectedLocationName }]);
     } else {
-      setIncorrectAnswers(prev => new Set([...prev, selectedLocation.name]));
+      setIncorrectAnswers(prev => new Set([...prev, selectedLocationName]));
+      setClickedMarkers(prev => [...prev, { lon, lat, type: 'incorrect', name: selectedLocationName }]);
     }
     
     setAnsweredLocations(newAnsweredLocations);
-    setSelectedLocation(null);
-    setShowHint(false);
+    setSelectedLocationName(null);
 
     // Check if quiz is complete
     if (newAnsweredLocations.size === locations.length) {
@@ -55,14 +81,27 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
     }
   };
 
-  const toggleHint = () => {
-    setShowHint(prev => !prev);
-  };
+  const handleShowAnswer = () => {
+    if (!selectedLocationName) return;
+    
+    const selectedLocation = locations.find(loc => loc.name === selectedLocationName);
+    if (!selectedLocation) return;
 
-  const getHint = () => {
-    if (!selectedLocation) return '';
-    const name = selectedLocation.name;
-    return `Hint: ${name.charAt(0)}${'*'.repeat(name.length - 2)}${name.charAt(name.length - 1)}`;
+    const newAnsweredLocations = new Set([...answeredLocations, selectedLocationName]);
+    setIncorrectAnswers(prev => new Set([...prev, selectedLocationName]));
+    setClickedMarkers(prev => [...prev, { 
+      lon: selectedLocation.x, 
+      lat: selectedLocation.y, 
+      type: 'answer', 
+      name: selectedLocationName 
+    }]);
+    setAnsweredLocations(newAnsweredLocations);
+    setSelectedLocationName(null);
+
+    // Check if quiz is complete
+    if (newAnsweredLocations.size === locations.length) {
+      setTimeout(() => setQuizComplete(true), 500);
+    }
   };
 
   const getCompletionPercentage = () => {
@@ -89,34 +128,30 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
       <div className="quiz-content">
         <div className="map-container">
           <InteractiveMap
-            locations={locations}
-            answeredLocations={answeredLocations}
-            correctAnswers={correctAnswers}
-            incorrectAnswers={incorrectAnswers}
-            onLocationClick={handleLocationClick}
-            selectedLocation={selectedLocation}
+            mode={mode}
+            clickedMarkers={clickedMarkers}
+            onMapClick={handleMapClick}
+            selectedLocationName={selectedLocationName}
           />
         </div>
 
         <div className="quiz-panel">
-          {selectedLocation && !answeredLocations.has(selectedLocation.name) && (
+          {selectedLocationName && !answeredLocations.has(selectedLocationName) && (
             <div className="location-info">
-              <h3>Selected Location</h3>
-              <p>Click on the map to select: <strong>{selectedLocation.name}</strong></p>
+              <h3>Selected: {selectedLocationName}</h3>
+              <p>
+                {mode === 'countries' 
+                  ? 'Click within the border of this country on the map' 
+                  : 'Click within 200 nm of this city on the map'}
+              </p>
               
               <div className="hint-section">
                 <button 
                   className="hint-button" 
-                  onClick={toggleHint}
-                  disabled={showHint}
+                  onClick={handleShowAnswer}
                 >
-                  💡 {showHint ? 'Hide Hint' : 'Show Hint'}
+                  💡 Show Answer
                 </button>
-                {showHint && (
-                  <div className="hint-text">
-                    {getHint()}
-                  </div>
-                )}
               </div>
             </div>
           )}
@@ -124,8 +159,8 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
           <WordBank
             locations={locations}
             answeredLocations={answeredLocations}
-            onAnswer={handleAnswer}
-            selectedLocation={selectedLocation}
+            onLocationSelect={handleLocationSelect}
+            selectedLocationName={selectedLocationName}
           />
 
           <div className="quiz-actions">

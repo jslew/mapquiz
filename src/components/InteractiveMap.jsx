@@ -1,6 +1,6 @@
 // InteractiveMap.jsx
 import React, { useMemo, useRef, useState, useCallback } from 'react';
-import * as d3 from 'd3-geo';
+import { geoNaturalEarth1, geoPath, geoGraticule10, geoContains } from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
 // Vite/CRA will bundle this JSON directly (no fetch)
 // Try this path first:
@@ -12,76 +12,123 @@ import './InteractiveMap.css';
 const WIDTH = 800;
 const HEIGHT = 400;
 
+// Map TopoJSON country names to our quiz location names
+const normalizeCountryName = (topoName) => {
+  if (!topoName) return null;
+  
+  const nameMap = {
+    'United States of America': 'United States',
+    'United Kingdom': 'United Kingdom',
+    'Russian Federation': 'Russia',
+    'Korea, Republic of': 'South Korea',
+    'Korea, Democratic People\'s Republic of': 'North Korea',
+    'Viet Nam': 'Vietnam',
+    'Republic of South Africa': 'South Africa',
+    'Saudi Arabia': 'Saudi Arabia',
+    'United Arab Emirates': 'United Arab Emirates',
+  };
+  
+  return nameMap[topoName] || topoName;
+};
+
 export default function InteractiveMap({
-  locations,
-  answeredLocations,
-  correctAnswers,
-  incorrectAnswers,
-  onLocationClick,
-  selectedLocation,
+  mode,
+  clickedMarkers,
+  onMapClick,
+  selectedLocationName,
 }) {
   // Pan/zoom state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const draggingRef = useRef(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const draggedRef = useRef(false);
 
   // Build projection + path
-  const { projection, geoPath, graticule } = useMemo(() => {
-    const proj = d3.geoNaturalEarth1()
+  const { projection, pathGenerator, graticule } = useMemo(() => {
+    const proj = geoNaturalEarth1()
       .scale(160 * zoom)                // baseline world scale with zoom
       .translate([WIDTH / 2 + pan.x, HEIGHT / 2 + pan.y]);  // center with pan
   
-    const path = d3.geoPath(proj);
-    const graticule = d3.geoGraticule10();
+    const path = geoPath(proj);
+    const grat = geoGraticule10();
   
-    return { projection: proj, geoPath: path, graticule };
+    return { projection: proj, pathGenerator: path, graticule: grat };
   }, [zoom, pan.x, pan.y]);
   
 
   // Convert TopoJSON → GeoJSON
-  const { countries, borders } = useMemo(() => {
+  const { countries, borders, countryFeatures } = useMemo(() => {
     // world-atlas/110m.json typically has objects: { land, countries, ... }
     const obj = world110m.objects?.countries || world110m.objects?.land;
     const f = feature(world110m, obj);
     const m = obj ? mesh(world110m, obj, (a, b) => a !== b) : null;
-    return { countries: f, borders: m };
+    
+    // Get individual country features for click detection
+    const features = f.features || [];
+    
+    return { countries: f, borders: m, countryFeatures: features };
   }, []);
 
-  const getLocationStatus = (name) => {
-    if (correctAnswers?.has(name)) return 'correct';
-    if (incorrectAnswers?.has(name)) return 'incorrect';
-    if (selectedLocation?.name === name) return 'selected';
-    return 'unanswered';
-  };
-
-  const renderLocationMarker = (loc) => {
-    const lon = loc.lon ?? loc.x;
-    const lat = loc.lat ?? loc.y;
+  const renderClickedMarker = (marker, index) => {
+    const lon = marker.lon;
+    const lat = marker.lat;
     if (lon == null || lat == null) return null;
     const [x, y] = projection([lon, lat]);
-    const status = getLocationStatus(loc.name);
+    
     return (
-      <g key={loc.name} className={`location-marker ${status}`}>
+      <g key={index} className={`location-marker ${marker.type}`}>
         <circle
           cx={x}
           cy={y}
-          r={status === 'selected' ? 8 : 6}
-          onClick={() => {
-            if (onLocationClick) {
-              onLocationClick(loc);
-            }
-          }}
-          className={`marker-circle ${status}`}
+          r={6}
+          className={`marker-circle ${marker.type}`}
         />
-        {(status === 'correct' || status === 'incorrect') && (
-          <text x={x} y={y - 12} textAnchor="middle" className={`marker-label ${status}`} fontSize="10">
-            {loc.name}
-          </text>
-        )}
+        <text x={x} y={y - 12} textAnchor="middle" className={`marker-label ${marker.type}`} fontSize="10">
+          {marker.name}
+        </text>
       </g>
     );
   };
+
+  // Handle click on the map
+  const handleSvgClick = useCallback((e) => {
+    if (draggedRef.current || !onMapClick) return;
+    draggedRef.current = false;
+    
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    
+    // Convert SVG coordinates to viewBox coordinates
+    const viewBoxWidth = WIDTH;
+    const viewBoxHeight = HEIGHT;
+    const scaleX = viewBoxWidth / rect.width;
+    const scaleY = viewBoxHeight / rect.height;
+    const viewBoxX = x * scaleX;
+    const viewBoxY = y * scaleY;
+    
+    // Convert to geographic coordinates
+    const coords = projection.invert([viewBoxX, viewBoxY]);
+    if (!coords) return;
+    
+    const [lon, lat] = coords;
+    
+    // Find which country was clicked
+    let clickedCountry = null;
+    if (mode === 'countries') {
+      for (const feat of countryFeatures) {
+        if (geoContains(feat, [lon, lat])) {
+          const topoName = feat.properties?.name;
+          clickedCountry = normalizeCountryName(topoName);
+          break;
+        }
+      }
+    }
+    
+    onMapClick(lon, lat, clickedCountry);
+  }, [projection, onMapClick, countryFeatures, mode]);
 
   const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
 
@@ -93,6 +140,7 @@ export default function InteractiveMap({
 
   const handleMouseDown = useCallback((e) => {
     draggingRef.current = true;
+    draggedRef.current = false;
     lastPosRef.current = { x: e.clientX, y: e.clientY };
   }, []);
 
@@ -100,6 +148,9 @@ export default function InteractiveMap({
     if (!draggingRef.current) return;
     const dx = e.clientX - lastPosRef.current.x;
     const dy = e.clientY - lastPosRef.current.y;
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+      draggedRef.current = true;
+    }
     lastPosRef.current = { x: e.clientX, y: e.clientY };
     setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
   }, []);
@@ -119,18 +170,19 @@ export default function InteractiveMap({
         onMouseMove={handleMouseMove}
         onMouseUp={endDrag}
         onMouseLeave={endDrag}
-        style={{ cursor: draggingRef.current ? 'grabbing' : 'grab' }}
+        onClick={handleSvgClick}
+        style={{ cursor: draggingRef.current ? 'grabbing' : (selectedLocationName ? 'crosshair' : 'grab') }}
       >
         <rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="#e6f3ff" stroke="#b3d9ff" strokeWidth="2" />
         <g className="grid" opacity="0.25">
-          <path d={geoPath(graticule)} fill="none" stroke="#ccc" strokeWidth="0.5" />
+          <path d={pathGenerator(graticule)} fill="none" stroke="#ccc" strokeWidth="0.5" />
         </g>
         {countries && (
           <g className="countries">
-            <path d={geoPath(countries)} fill="#f0f8ff" stroke="#87ceeb" strokeWidth="0.6" />
+            <path d={pathGenerator(countries)} fill="#f0f8ff" stroke="#87ceeb" strokeWidth="0.6" />
             {borders && (
               <path
-                d={geoPath(borders)}
+                d={pathGenerator(borders)}
                 fill="none"
                 stroke="#7fb3d5"
                 strokeWidth="0.4"
@@ -139,16 +191,17 @@ export default function InteractiveMap({
             )}
           </g>
         )}
-        <g className="location-markers">{Array.isArray(locations) && locations.map(renderLocationMarker)}</g>
+        <g className="location-markers">
+          {Array.isArray(clickedMarkers) && clickedMarkers.map(renderClickedMarker)}
+        </g>
       </svg>
 
       <div className="map-legend">
         <h4>Legend:</h4>
         <div className="legend-items">
-          <div className="legend-item"><div className="legend-marker unanswered"></div><span>Not answered</span></div>
-          <div className="legend-item"><div className="legend-marker selected"></div><span>Selected</span></div>
           <div className="legend-item"><div className="legend-marker correct"></div><span>Correct</span></div>
           <div className="legend-item"><div className="legend-marker incorrect"></div><span>Incorrect</span></div>
+          <div className="legend-item"><div className="legend-marker answer"></div><span>Answer</span></div>
         </div>
       </div>
     </div>
