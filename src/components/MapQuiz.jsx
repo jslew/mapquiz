@@ -36,6 +36,8 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
 
     const isCorrect = answer === selectedLocation.name;
     
+    const newAnsweredLocations = new Set([...answeredLocations, selectedLocation.name]);
+    
     if (isCorrect) {
       setCorrectAnswers(prev => new Set([...prev, selectedLocation.name]));
       setScore(prev => prev + 1);
@@ -43,12 +45,12 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
       setIncorrectAnswers(prev => new Set([...prev, selectedLocation.name]));
     }
     
-    setAnsweredLocations(prev => new Set([...prev, selectedLocation.name]));
+    setAnsweredLocations(newAnsweredLocations);
     setSelectedLocation(null);
     setShowHint(false);
 
     // Check if quiz is complete
-    if (answeredLocations.size + 1 === locations.length) {
+    if (newAnsweredLocations.size === locations.length) {
       setTimeout(() => setQuizComplete(true), 500);
     }
   };

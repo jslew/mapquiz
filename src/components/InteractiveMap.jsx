@@ -1,47 +1,74 @@
-import React from 'react';
-import { convertToSVG } from '../data/locations';
-import './InteractiveMap.css';
+// InteractiveMap.jsx
+import React, { useMemo } from 'react';
+import * as d3 from 'd3-geo';
+import { feature, mesh } from 'topojson-client';
+// Vite/CRA will bundle this JSON directly (no fetch)
+// Try this path first:
+import world110m from 'world-atlas/countries-110m.json';
+// If your bundler needs explicit .json import without "assert", try:
+// import world110m from 'world-atlas/110m.json';
 
-const InteractiveMap = ({ 
-  locations, 
-  answeredLocations, 
-  correctAnswers, 
-  incorrectAnswers, 
-  onLocationClick, 
-  selectedLocation 
-}) => {
-  const handleLocationClick = (location) => {
-    onLocationClick(location);
-  };
+const WIDTH = 800;
+const HEIGHT = 400;
 
-  const getLocationStatus = (locationName) => {
-    if (correctAnswers.has(locationName)) return 'correct';
-    if (incorrectAnswers.has(locationName)) return 'incorrect';
-    if (selectedLocation?.name === locationName) return 'selected';
+export default function InteractiveMap({
+  locations,
+  answeredLocations,
+  correctAnswers,
+  incorrectAnswers,
+  onLocationClick,
+  selectedLocation,
+}) {
+  // Build projection + path
+  const { projection, geoPath, graticule } = useMemo(() => {
+    const proj = d3.geoNaturalEarth1()
+      .scale(160)                // baseline world scale
+      .translate([WIDTH / 2, HEIGHT / 2]);  // center in SVG
+  
+    const path = d3.geoPath(proj);
+    const graticule = d3.geoGraticule10();
+  
+    return { projection: proj, geoPath: path, graticule };
+  }, []);
+  
+
+  // Convert TopoJSON → GeoJSON
+  const { countries, borders } = useMemo(() => {
+    // world-atlas/110m.json typically has objects: { land, countries, ... }
+    const obj = world110m.objects?.countries || world110m.objects?.land;
+    const f = feature(world110m, obj);
+    const m = obj ? mesh(world110m, obj, (a, b) => a !== b) : null;
+    return { countries: f, borders: m };
+  }, []);
+
+  const getLocationStatus = (name) => {
+    if (correctAnswers?.has(name)) return 'correct';
+    if (incorrectAnswers?.has(name)) return 'incorrect';
+    if (selectedLocation?.name === name) return 'selected';
     return 'unanswered';
   };
 
-  const renderLocationMarker = (location) => {
-    const { x, y } = convertToSVG(location.x, location.y);
-    const status = getLocationStatus(location.name);
-    
+  const renderLocationMarker = (loc) => {
+    const lon = loc.lon ?? loc.x;
+    const lat = loc.lat ?? loc.y;
+    if (lon == null || lat == null) return null;
+    const [x, y] = projection([lon, lat]);
+    const status = getLocationStatus(loc.name);
     return (
-      <g key={location.name} className={`location-marker ${status}`}>
+      <g key={loc.name} className={`location-marker ${status}`}>
         <circle
           cx={x}
           cy={y}
           r={status === 'selected' ? 8 : 6}
-          onClick={() => handleLocationClick(location)}
+          onClick={() => {
+            if (onLocationClick) {
+              onLocationClick(loc);
+            }
+          }}
           className={`marker-circle ${status}`}
         />
-        <text
-          x={x}
-          y={y - 12}
-          textAnchor="middle"
-          className={`marker-label ${status}`}
-          fontSize="10"
-        >
-          {location.name}
+        <text x={x} y={y - 12} textAnchor="middle" className={`marker-label ${status}`} fontSize="10">
+          {loc.name}
         </text>
       </g>
     );
@@ -49,131 +76,37 @@ const InteractiveMap = ({
 
   return (
     <div className="interactive-map">
-      <svg 
-        viewBox="0 0 800 400" 
-        className="world-map"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        {/* Simple world map background */}
-        <rect 
-          x="0" 
-          y="0" 
-          width="800" 
-          height="400" 
-          fill="#e6f3ff" 
-          stroke="#b3d9ff" 
-          strokeWidth="2"
-        />
-        
-        {/* Continent outlines (simplified) */}
-        <g className="continents">
-          {/* North America */}
-          <path 
-            d="M 50 100 L 200 80 L 250 120 L 200 200 L 100 180 L 50 100 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
-          
-          {/* South America */}
-          <path 
-            d="M 150 200 L 200 180 L 220 280 L 180 300 L 150 200 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
-          
-          {/* Europe */}
-          <path 
-            d="M 350 80 L 450 70 L 480 120 L 450 140 L 380 130 L 350 80 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
-          
-          {/* Africa */}
-          <path 
-            d="M 380 140 L 450 130 L 480 200 L 450 280 L 400 270 L 380 140 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
-          
-          {/* Asia */}
-          <path 
-            d="M 450 70 L 650 60 L 700 100 L 680 180 L 600 200 L 500 150 L 450 70 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
-          
-          {/* Australia */}
-          <path 
-            d="M 600 250 L 700 240 L 720 300 L 650 320 L 600 250 Z" 
-            fill="#f0f8ff" 
-            stroke="#87ceeb" 
-            strokeWidth="1"
-          />
+      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="world-map" preserveAspectRatio="xMidYMid meet">
+        <rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="#e6f3ff" stroke="#b3d9ff" strokeWidth="2" />
+        <g className="grid" opacity="0.25">
+          <path d={geoPath(graticule)} fill="none" stroke="#ccc" strokeWidth="0.5" />
         </g>
-        
-        {/* Location markers */}
-        <g className="location-markers">
-          {locations.map(renderLocationMarker)}
-        </g>
-        
-        {/* Grid lines for reference */}
-        <g className="grid" opacity="0.3">
-          {/* Vertical lines */}
-          {Array.from({ length: 9 }, (_, i) => (
-            <line 
-              key={`v-${i}`} 
-              x1={i * 100} 
-              y1="0" 
-              x2={i * 100} 
-              y2="400" 
-              stroke="#ccc" 
-              strokeWidth="0.5"
-            />
-          ))}
-          
-          {/* Horizontal lines */}
-          {Array.from({ length: 5 }, (_, i) => (
-            <line 
-              key={`h-${i}`} 
-              x1="0" 
-              y1={i * 100} 
-              x2="800" 
-              y2={i * 100} 
-              stroke="#ccc" 
-              strokeWidth="0.5"
-            />
-          ))}
-        </g>
+        {countries && (
+          <g className="countries">
+            <path d={geoPath(countries)} fill="#f0f8ff" stroke="#87ceeb" strokeWidth="0.6" />
+            {borders && (
+              <path
+                d={geoPath(borders)}
+                fill="none"
+                stroke="#7fb3d5"
+                strokeWidth="0.4"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
+          </g>
+        )}
+        <g className="location-markers">{Array.isArray(locations) && locations.map(renderLocationMarker)}</g>
       </svg>
-      
+
       <div className="map-legend">
         <h4>Legend:</h4>
         <div className="legend-items">
-          <div className="legend-item">
-            <div className="legend-marker unanswered"></div>
-            <span>Not answered</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker selected"></div>
-            <span>Selected</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker correct"></div>
-            <span>Correct</span>
-          </div>
-          <div className="legend-item">
-            <div className="legend-marker incorrect"></div>
-            <span>Incorrect</span>
-          </div>
+          <div className="legend-item"><div className="legend-marker unanswered"></div><span>Not answered</span></div>
+          <div className="legend-item"><div className="legend-marker selected"></div><span>Selected</span></div>
+          <div className="legend-item"><div className="legend-marker correct"></div><span>Correct</span></div>
+          <div className="legend-item"><div className="legend-marker incorrect"></div><span>Incorrect</span></div>
         </div>
       </div>
     </div>
   );
-};
-
-export default InteractiveMap;
+}

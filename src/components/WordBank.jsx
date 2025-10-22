@@ -2,18 +2,23 @@ import React, { useState } from 'react';
 import './WordBank.css';
 
 const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) => {
-  const [shuffledLocations, setShuffledLocations] = useState([]);
+  const [shuffledLocations, setShuffledLocations] = useState(
+    locations && locations.length > 0 ? [...locations].sort(() => Math.random() - 0.5) : []
+  );
 
   // Shuffle locations when component mounts or locations change
   React.useEffect(() => {
-    const shuffled = [...locations].sort(() => Math.random() - 0.5);
-    setShuffledLocations(shuffled);
+    if (locations && locations.length > 0) {
+      const shuffled = [...locations].sort(() => Math.random() - 0.5);
+      setShuffledLocations(shuffled);
+    }
   }, [locations]);
 
   const handleAnswerClick = (locationName) => {
-    if (selectedLocation && !answeredLocations.has(selectedLocation.name)) {
-      onAnswer(locationName);
+    if (!selectedLocation || answeredLocations.has(selectedLocation.name)) {
+      return;
     }
+    onAnswer(locationName);
   };
 
   const getButtonStatus = (locationName) => {
