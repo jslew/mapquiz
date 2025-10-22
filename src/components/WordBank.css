@@ -1,0 +1,198 @@
+/* WordBank Component Styles */
+.word-bank {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  height: fit-content;
+}
+
+.word-bank-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.word-bank-header h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.3rem;
+}
+
+.shuffle-button {
+  background: linear-gradient(45deg, #9b59b6, #8e44ad);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.shuffle-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.word-bank-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.word-bank-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.word-bank-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.word-bank-content::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.word-bank-content::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.word-button {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+  color: white;
+  border: none;
+  padding: 0.75rem 0.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  text-align: center;
+  word-wrap: break-word;
+  min-height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.word-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.word-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.word-button.available {
+  background: linear-gradient(45deg, #3498db, #2980b9);
+}
+
+.word-button.selected {
+  background: linear-gradient(45deg, #f39c12, #e67e22);
+  animation: selectedPulse 1s infinite;
+}
+
+.word-button.answered {
+  background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+  cursor: default;
+}
+
+@keyframes selectedPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.4);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+}
+
+.word-bank-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: rgba(52, 152, 219, 0.1);
+  border-radius: 10px;
+}
+
+.stat {
+  text-align: center;
+}
+
+.stat-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #333;
+}
+
+.selection-instruction {
+  background: rgba(52, 152, 219, 0.1);
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+
+.selection-instruction p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .word-bank-content {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+  }
+  
+  .word-button {
+    padding: 0.6rem 0.4rem;
+    font-size: 0.8rem;
+    min-height: 2rem;
+  }
+  
+  .word-bank-stats {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .stat-label, .stat-value {
+    display: inline;
+    margin: 0;
+  }
+}

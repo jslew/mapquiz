@@ -1,0 +1,164 @@
+/* InteractiveMap Component Styles */
+.interactive-map {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.world-map {
+  width: 100%;
+  height: 100%;
+  min-height: 400px;
+  border-radius: 15px;
+  background: #f8f9fa;
+}
+
+.location-marker {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.location-marker:hover .marker-circle {
+  transform: scale(1.2);
+}
+
+.marker-circle {
+  transition: all 0.3s ease;
+  stroke-width: 2;
+}
+
+.marker-circle.unanswered {
+  fill: #3498db;
+  stroke: #2980b9;
+}
+
+.marker-circle.selected {
+  fill: #f39c12;
+  stroke: #e67e22;
+  animation: pulse 1.5s infinite;
+}
+
+.marker-circle.correct {
+  fill: #27ae60;
+  stroke: #229954;
+}
+
+.marker-circle.incorrect {
+  fill: #e74c3c;
+  stroke: #c0392b;
+}
+
+.marker-label {
+  font-weight: bold;
+  pointer-events: none;
+  transition: all 0.3s ease;
+}
+
+.marker-label.unanswered {
+  fill: #2c3e50;
+}
+
+.marker-label.selected {
+  fill: #d68910;
+}
+
+.marker-label.correct {
+  fill: #1e8449;
+}
+
+.marker-label.incorrect {
+  fill: #a93226;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.map-legend {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 10px;
+  padding: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  min-width: 150px;
+}
+
+.map-legend h4 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #666;
+}
+
+.legend-marker {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.legend-marker.unanswered {
+  background: #3498db;
+  border-color: #2980b9;
+}
+
+.legend-marker.selected {
+  background: #f39c12;
+  border-color: #e67e22;
+}
+
+.legend-marker.correct {
+  background: #27ae60;
+  border-color: #229954;
+}
+
+.legend-marker.incorrect {
+  background: #e74c3c;
+  border-color: #c0392b;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .map-legend {
+    position: static;
+    margin-top: 1rem;
+    width: 100%;
+  }
+  
+  .legend-items {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+  
+  .world-map {
+    min-height: 300px;
+  }
+}
