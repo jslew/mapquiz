@@ -54,6 +54,11 @@
   stroke: #f39c12;
 }
 
+.marker-circle.near-miss {
+  fill: #f1c40f;
+  stroke: #f39c12;
+}
+
 .marker-label {
   font-weight: bold;
   pointer-events: none;
@@ -81,9 +86,14 @@
   fill: #d68910;
 }
 
+.marker-label.near-miss {
+  fill: #d68910;
+}
+
 .marker-label.correct,
 .marker-label.incorrect,
-.marker-label.answer {
+.marker-label.answer,
+.marker-label.near-miss {
   display: block;
 }
 
@@ -162,6 +172,11 @@
 }
 
 .legend-marker.answer {
+  background: #f1c40f;
+  border-color: #f39c12;
+}
+
+.legend-marker.near-miss {
   background: #f1c40f;
   border-color: #f39c12;
 }

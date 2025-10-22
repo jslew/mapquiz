@@ -51,6 +51,7 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
     if (!selectedLocation) return;
 
     let isCorrect = false;
+    let markerType = 'incorrect';
     
     if (mode === 'countries') {
       // Check if clicked within the correct country
@@ -59,6 +60,11 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
       // For cities, check if within 200 nm
       const distance = calculateDistance(lon, lat, selectedLocation.x, selectedLocation.y);
       isCorrect = distance <= 200;
+      
+      // If wrong distance but right country, use yellow marker
+      if (!isCorrect && selectedLocation.country && countryName === selectedLocation.country) {
+        markerType = 'near-miss';
+      }
     }
 
     const newAnsweredLocations = new Set([...answeredLocations, selectedLocationName]);
@@ -69,7 +75,7 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
       setClickedMarkers(prev => [...prev, { lon, lat, type: 'correct', name: selectedLocationName }]);
     } else {
       setIncorrectAnswers(prev => new Set([...prev, selectedLocationName]));
-      setClickedMarkers(prev => [...prev, { lon, lat, type: 'incorrect', name: selectedLocationName }]);
+      setClickedMarkers(prev => [...prev, { lon, lat, type: markerType, name: selectedLocationName }]);
     }
     
     setAnsweredLocations(newAnsweredLocations);

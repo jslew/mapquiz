@@ -134,9 +134,31 @@ export default function InteractiveMap({
 
   const handleWheel = useCallback((e) => {
     e.preventDefault();
+    
+    // Get mouse position in SVG coordinates
+    const svg = e.currentTarget;
+    const rect = svg.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    
+    // Convert to viewBox coordinates
+    const scaleX = WIDTH / rect.width;
+    const scaleY = HEIGHT / rect.height;
+    const viewBoxX = mouseX * scaleX;
+    const viewBoxY = mouseY * scaleY;
+    
     const factor = Math.exp(-e.deltaY * 0.0015);
-    setZoom((z) => clamp(z * factor, 0.6, 6));
-  }, []);
+    const newZoom = clamp(zoom * factor, 0.6, 6);
+    
+    // Calculate the pan adjustment to zoom towards the cursor
+    // The point under the cursor should remain stationary
+    const zoomRatio = newZoom / zoom;
+    const newPanX = viewBoxX - (viewBoxX - pan.x - WIDTH / 2) * zoomRatio - WIDTH / 2;
+    const newPanY = viewBoxY - (viewBoxY - pan.y - HEIGHT / 2) * zoomRatio - HEIGHT / 2;
+    
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  }, [zoom, pan.x, pan.y]);
 
   const handleMouseDown = useCallback((e) => {
     draggingRef.current = true;
@@ -201,6 +223,9 @@ export default function InteractiveMap({
         <div className="legend-items">
           <div className="legend-item"><div className="legend-marker correct"></div><span>Correct</span></div>
           <div className="legend-item"><div className="legend-marker incorrect"></div><span>Incorrect</span></div>
+          {mode === 'cities' && (
+            <div className="legend-item"><div className="legend-marker near-miss"></div><span>Right country</span></div>
+          )}
           <div className="legend-item"><div className="legend-marker answer"></div><span>Answer</span></div>
         </div>
       </div>
