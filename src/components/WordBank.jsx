@@ -21,16 +21,6 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
     onAnswer(locationName);
   };
 
-  const getButtonStatus = (locationName) => {
-    if (answeredLocations.has(locationName)) {
-      return 'answered';
-    }
-    if (selectedLocation?.name === locationName) {
-      return 'selected';
-    }
-    return 'available';
-  };
-
   const shuffleAnswers = () => {
     const shuffled = [...locations].sort(() => Math.random() - 0.5);
     setShuffledLocations(shuffled);
@@ -51,13 +41,13 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
       
       <div className="word-bank-content">
         {shuffledLocations.map((location) => {
-          const status = getButtonStatus(location.name);
-          const isDisabled = !selectedLocation || answeredLocations.has(selectedLocation.name);
+          const isAnswered = answeredLocations.has(location.name);
+          const isDisabled = !selectedLocation || isAnswered;
           
           return (
             <button
               key={location.name}
-              className={`word-button ${status}`}
+              className={`word-button${isAnswered ? ' answered' : ''}`}
               onClick={() => handleAnswerClick(location.name)}
               disabled={isDisabled}
             >
@@ -84,7 +74,7 @@ const WordBank = ({ locations, answeredLocations, onAnswer, selectedLocation }) 
       
       {selectedLocation && !answeredLocations.has(selectedLocation.name) && (
         <div className="selection-instruction">
-          <p>💡 Click on <strong>{selectedLocation.name}</strong> in the word bank to answer</p>
+          <p>💡 Choose the matching name from the word bank.</p>
         </div>
       )}
       

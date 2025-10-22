@@ -99,34 +99,11 @@
   transform: none;
 }
 
-.word-button.available {
-  background: linear-gradient(45deg, #3498db, #2980b9);
-}
-
-.word-button.selected {
-  background: linear-gradient(45deg, #f39c12, #e67e22);
-  animation: selectedPulse 1s infinite;
-}
-
 .word-button.answered {
   background: linear-gradient(45deg, #95a5a6, #7f8c8d);
   cursor: default;
 }
 
-@keyframes selectedPulse {
-  0% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-  50% {
-    transform: scale(1.05);
-    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.4);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  }
-}
 
 .word-bank-stats {
   display: grid;
