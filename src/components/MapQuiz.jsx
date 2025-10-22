@@ -73,13 +73,14 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
       setCorrectAnswers(prev => new Set([...prev, selectedLocationName]));
       setScore(prev => prev + 1);
       setClickedMarkers(prev => [...prev, { lon, lat, type: 'correct', name: selectedLocationName }]);
+      setAnsweredLocations(newAnsweredLocations);
+      setSelectedLocationName(null); // Deselect on correct answer
     } else {
       setIncorrectAnswers(prev => new Set([...prev, selectedLocationName]));
       setClickedMarkers(prev => [...prev, { lon, lat, type: markerType, name: selectedLocationName }]);
+      setAnsweredLocations(newAnsweredLocations);
+      // Keep location selected on wrong answer so they can use "Show Answer"
     }
-    
-    setAnsweredLocations(newAnsweredLocations);
-    setSelectedLocationName(null);
 
     // Check if quiz is complete
     if (newAnsweredLocations.size === locations.length) {
@@ -142,23 +143,39 @@ const MapQuiz = ({ mode, onBackToMenu, locations }) => {
         </div>
 
         <div className="quiz-panel">
-          {selectedLocationName && !answeredLocations.has(selectedLocationName) && (
+          {selectedLocationName && (
             <div className="location-info">
               <h3>Selected: {selectedLocationName}</h3>
-              <p>
-                {mode === 'countries' 
-                  ? 'Click within the border of this country on the map' 
-                  : 'Click within 200 nm of this city on the map'}
-              </p>
+              {!answeredLocations.has(selectedLocationName) ? (
+                <p>
+                  {mode === 'countries' 
+                    ? 'Click within the border of this country on the map' 
+                    : 'Click within 200 nm of this city on the map'}
+                </p>
+              ) : (
+                <p style={{ color: '#e74c3c' }}>
+                  ❌ Incorrect! Click "Show Answer" to see the correct location.
+                </p>
+              )}
               
-              <div className="hint-section">
-                <button 
-                  className="hint-button" 
-                  onClick={handleShowAnswer}
-                >
-                  💡 Show Answer
-                </button>
-              </div>
+              {answeredLocations.has(selectedLocationName) && (
+                <div className="hint-section">
+                  <button 
+                    className="hint-button" 
+                    onClick={handleShowAnswer}
+                  >
+                    💡 Show Answer
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+          
+          {!selectedLocationName && answeredLocations.size > 0 && incorrectAnswers.size > 0 && (
+            <div className="location-info">
+              <p style={{ color: '#e74c3c', fontWeight: 'bold' }}>
+                💡 Tip: Select an incorrect answer to see where it should be
+              </p>
             </div>
           )}
 
