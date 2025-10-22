@@ -7,6 +7,7 @@ import { feature, mesh } from 'topojson-client';
 import world110m from 'world-atlas/countries-110m.json';
 // If your bundler needs explicit .json import without "assert", try:
 // import world110m from 'world-atlas/110m.json';
+import './InteractiveMap.css';
 
 const WIDTH = 800;
 const HEIGHT = 400;
