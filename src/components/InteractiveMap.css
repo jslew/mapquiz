@@ -19,7 +19,7 @@
 }
 
 .location-marker:hover .marker-circle {
-  transform: scale(1.2);
+  transform: none;
 }
 
 .marker-circle {
@@ -36,7 +36,7 @@
 .marker-circle.selected {
   fill: #f39c12;
   stroke: #e67e22;
-  animation: pulse 1.5s infinite;
+  animation: none;
 }
 
 .marker-circle.correct {
@@ -53,6 +53,7 @@
   font-weight: bold;
   pointer-events: none;
   transition: all 0.3s ease;
+  display: none;
 }
 
 .marker-label.unanswered {
@@ -69,6 +70,11 @@
 
 .marker-label.incorrect {
   fill: #a93226;
+}
+
+.marker-label.correct,
+.marker-label.incorrect {
+  display: block;
 }
 
 @keyframes pulse {

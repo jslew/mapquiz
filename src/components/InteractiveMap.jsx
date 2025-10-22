@@ -1,5 +1,5 @@
 // InteractiveMap.jsx
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3-geo';
 import { feature, mesh } from 'topojson-client';
 // Vite/CRA will bundle this JSON directly (no fetch)
@@ -20,17 +20,23 @@ export default function InteractiveMap({
   onLocationClick,
   selectedLocation,
 }) {
+  // Pan/zoom state
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const draggingRef = useRef(false);
+  const lastPosRef = useRef({ x: 0, y: 0 });
+
   // Build projection + path
   const { projection, geoPath, graticule } = useMemo(() => {
     const proj = d3.geoNaturalEarth1()
-      .scale(160)                // baseline world scale
-      .translate([WIDTH / 2, HEIGHT / 2]);  // center in SVG
+      .scale(160 * zoom)                // baseline world scale with zoom
+      .translate([WIDTH / 2 + pan.x, HEIGHT / 2 + pan.y]);  // center with pan
   
     const path = d3.geoPath(proj);
     const graticule = d3.geoGraticule10();
   
     return { projection: proj, geoPath: path, graticule };
-  }, []);
+  }, [zoom, pan.x, pan.y]);
   
 
   // Convert TopoJSON → GeoJSON
@@ -68,16 +74,53 @@ export default function InteractiveMap({
           }}
           className={`marker-circle ${status}`}
         />
-        <text x={x} y={y - 12} textAnchor="middle" className={`marker-label ${status}`} fontSize="10">
-          {loc.name}
-        </text>
+        {(status === 'correct' || status === 'incorrect') && (
+          <text x={x} y={y - 12} textAnchor="middle" className={`marker-label ${status}`} fontSize="10">
+            {loc.name}
+          </text>
+        )}
       </g>
     );
   };
 
+  const clamp = (val, min, max) => Math.max(min, Math.min(max, val));
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    setZoom((z) => clamp(z * factor, 0.6, 6));
+  }, []);
+
+  const handleMouseDown = useCallback((e) => {
+    draggingRef.current = true;
+    lastPosRef.current = { x: e.clientX, y: e.clientY };
+  }, []);
+
+  const handleMouseMove = useCallback((e) => {
+    if (!draggingRef.current) return;
+    const dx = e.clientX - lastPosRef.current.x;
+    const dy = e.clientY - lastPosRef.current.y;
+    lastPosRef.current = { x: e.clientX, y: e.clientY };
+    setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+  }, []);
+
+  const endDrag = useCallback(() => {
+    draggingRef.current = false;
+  }, []);
+
   return (
     <div className="interactive-map">
-      <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="world-map" preserveAspectRatio="xMidYMid meet">
+      <svg
+        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+        className="world-map"
+        preserveAspectRatio="xMidYMid meet"
+        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={endDrag}
+        onMouseLeave={endDrag}
+        style={{ cursor: draggingRef.current ? 'grabbing' : 'grab' }}
+      >
         <rect x="0" y="0" width={WIDTH} height={HEIGHT} fill="#e6f3ff" stroke="#b3d9ff" strokeWidth="2" />
         <g className="grid" opacity="0.25">
           <path d={geoPath(graticule)} fill="none" stroke="#ccc" strokeWidth="0.5" />
